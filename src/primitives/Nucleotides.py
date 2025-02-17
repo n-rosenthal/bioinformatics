@@ -3,6 +3,7 @@
 from enum import Enum;
 from typing import List, Tuple;
 from random import randrange, randint, choice;
+from collections import Counter, defaultdict, deque;
 
 
 class Nucleobase(Enum):
@@ -81,7 +82,7 @@ class Nucleobase(Enum):
         Nucleobase
             A random Nucleobase enum.
         """
-        return choice(list(Nucleobase));
+        return choice([A, C, G, T, ]);
 
 def name(base: Nucleobase) -> str:
     """
@@ -252,8 +253,25 @@ class Nucleotide:
 
 
 class NucleotideSequence:
+    """
+    A `NucleotideSequence` object represents a sequence of DNA or RNA nucleotides.
+    
+    Attributes
+    ----------
+    sequence : List[Nucleotide]
+        The sequence of nucleotides.
+    """
     def __init__(self, sequence: list[Nucleotide]):
         self.sequence = sequence;
+        self._len = len(sequence);
+        
+        if len(self.sequence) > 0:
+            self.distribution = Counter([nucleotide.base for nucleotide in self.sequence]);
+            self.quality_distribution = Counter([nucleotide.quality for nucleotide in self.sequence]);
+        else:
+            self.distribution = Counter();
+            self.quality_distribution = Counter();
+        
         
     @staticmethod
     def get_random_sequence(length: int) -> 'NucleotideSequence':
@@ -374,24 +392,68 @@ class NucleotideSequence:
         """
         return NucleotideSequence([Nucleotide(complement[nucleotide.base], nucleotide.position, nucleotide.quality) for nucleotide in self.sequence]);
 
-    def nucleobase_distribution(self):
+    def get_distribution(self):
         """
-        Returns a dictionary of the distribution of nucleobases in the NucleotideSequence object.
+        Returns the distribution of the NucleotideSequence object.
         
         Returns
         -------
-        dict
-            A dictionary of the distribution of nucleobases in the NucleotideSequence object.
+        Counter[Nucleobase]
+            The distribution of the NucleotideSequence object.
         """
-        distribution : dict[Nucleobase, int] = {Nucleobase.A: 0, Nucleobase.C: 0, Nucleobase.G: 0, Nucleobase.T: 0, Nucleobase.U: 0};
-        for nucleotide in self.sequence:
-            distribution[nucleotide.base] += 1;
-        return distribution;
+        if len(self.sequence) == 0:
+            raise Exception('Sequence is empty');
+        elif len(self.sequence) == self._len:
+            return self.distribution;
+        else:
+            self._len = len(self.sequence);
+            return Counter([nucleotide.base for nucleotide in self.sequence]);
+    
+    def get_percentages(self):
+        """
+        Returns the distribution of the NucleotideSequence object as a list of tuples.
+        
+        Returns
+        -------
+        List[Tuple[Nucleobase, float]]
+            The distribution of the NucleotideSequence object as a list of tuples.
+        """
+        nucleobases : List[Tuple[Nucleobase, float]] = [(base, count / len(self.sequence)) for base, count in self.distribution.items()];
+        
+        return [(nucleobase, percentage * 100) for nucleobase, percentage in nucleobases];
+    
+    def get_quality_distribution(self):
+        """
+        Returns the quality distribution of the NucleotideSequence object.
+        
+        Returns
+        -------
+        Counter[int]
+            The quality distribution of the NucleotideSequence object.
+        """
+        if len(self.sequence) == 0:
+            raise Exception('Sequence is empty');
+        elif len(self.sequence) == self._len:
+            return self.quality_distribution;
+        else:
+            self._len = len(self.sequence);
+            return Counter([nucleotide.quality for nucleotide in self.sequence]);
+    
+    def fastq(self) -> str:
+        """
+        Returns the FASTQ string representation of the NucleotideSequence object.
+        
+        Returns
+        -------
+        str
+            The FASTQ string representation of the NucleotideSequence object.
+        """
+        return "".join([str(nucleotide.base.value) for nucleotide in self.sequence]) + \
+                "\n+\n" + \
+                "".join([chr(nucleotide.quality) for nucleotide in self.sequence]);
 
 if __name__ == '__main__':
-    seq_1 : NucleotideSequence = NucleotideSequence.from_string('ACGTAGGTCAGTTATTCACAGAT');
-    seq_1.print_nucleobases();
-    print(seq_1.nucleobase_distribution());
-    seq_2 : NucleotideSequence = seq_1.complementary_sequence();
-    seq_2.print_nucleobases();
-    print(seq_2.nucleobase_distribution().values());
+    seq_1 : NucleotideSequence = NucleotideSequence.get_random_sequence(100_000_00);
+    print(seq_1.get_distribution());
+    print(seq_1.get_percentages());
+    print(seq_1.get_quality_distribution());
