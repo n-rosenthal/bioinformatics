@@ -316,7 +316,7 @@ class NucleotideSequence:
     
     
     def __str__(self):
-        return f'NucleotideSequence(sequence={self.sequence})';
+        return "".join([str(nucleotide.base.value) for nucleotide in self.sequence]);
     
     def __repr__(self):
         return self.__str__();
